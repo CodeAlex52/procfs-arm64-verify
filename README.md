@@ -1,0 +1,1 @@
+RED/GREEN verification (cloud-only, disposable) for the procfs arm64 cpuinfo identity fix (#875).
