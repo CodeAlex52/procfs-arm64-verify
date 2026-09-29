@@ -1,0 +1,36 @@
+name: arm64-cpuinfo-verify
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "red (upstream cpuinfo.go) or green (fixed cpuinfo.go)"
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream procfs at pinned SHA
+        uses: actions/checkout@v4
+        with:
+          repository: prometheus/procfs
+          ref: 93d82b8fe938ae7c246ae0ad05ab187764989f51
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Overlay files
+        run: |
+          set -euo pipefail
+          VARIANT=${{ inputs.variant }}
+          BASE=https://raw.githubusercontent.com/CodeAlex52/procfs-arm64-verify/main
+          if [ "$VARIANT" = "green" ]; then
+            curl -fsSL "$BASE/overlay/cpuinfo_fixed.go" -o cpuinfo.go
+          else
+            curl -fsSL "$BASE/overlay/cpuinfo_upstream.go" -o cpuinfo.go
+          fi
+          curl -fsSL "$BASE/overlay/cpuinfo_test_new.go" -o cpuinfo_test.go
+      - name: Run arm64 identity regression test
+        run: |
+          set -euo pipefail
+          go test . -run TestParseCPUInfoARM64IdentityFields -v 2>&1 | tee arm64-identity.log
